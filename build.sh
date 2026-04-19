@@ -32,6 +32,7 @@ gnome-extensions pack \
     --extra-source=lib \
     --extra-source=stylesheet.css \
     --extra-source=LICENSE \
+    --extra-source=media \
     .
 
 TMP_ZIP="$TMP_DIR/$ZIP_NAME"

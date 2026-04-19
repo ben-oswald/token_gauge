@@ -9,3 +9,6 @@
 dist/
 *.shell-extension.zip
 schemas/gschemas.compiled
+
+# Maintainer-only notes
+INTERNAL.md

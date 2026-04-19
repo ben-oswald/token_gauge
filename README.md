@@ -5,6 +5,8 @@ A GNOME Shell extension that shows the available quota of your AI coding plan
 
 `*` providers only work through Kilo CLI.
 
+![Token Gauge screenshot](media/screenshot.png)
+
 ## Requirements
 
 - GNOME Shell 49
