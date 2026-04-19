@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.token_gauge" path="/org/gnome/shell/extensions/token_gauge/">
+    <key name="refresh-interval" type="i">
+      <default>5</default>
+      <summary>Refresh interval in minutes</summary>
+      <description>How often to refresh the quota data (1, 2, 5, 10, or 60 minutes)</description>
+    </key>
+    <key name="credentials-version" type="i">
+      <default>0</default>
+      <summary>Credentials version counter</summary>
+      <description>Incremented whenever the user saves a new API key in preferences, signalling the running extension to reload credentials</description>
+    </key>
+    <key name="kilo-credentials-path" type="s">
+      <default>''</default>
+      <summary>Kilo credentials path</summary>
+      <description>Custom path to Kilo's auth.json. Empty string means auto-detect at ~/.local/share/kilo/auth.json</description>
+    </key>
+    <key name="enabled-providers" type="as">
+      <default>[]</default>
+      <summary>Enabled providers</summary>
+      <description>List of enabled provider IDs, e.g. ['zai', 'copilot']</description>
+    </key>
+    <key name="provider-order" type="as">
+      <default>['zai', 'copilot']</default>
+      <summary>Provider display order</summary>
+      <description>Order of provider IDs for display in the panel popup and settings page. First entry = leftmost column in popup.</description>
+    </key>
+    <key name="zai-credential-source" type="s">
+      <default>'kilo'</default>
+      <summary>Z.ai credential source</summary>
+      <description>How to obtain Z.ai credentials: 'api_key' for manual GNOME Keyring entry, 'kilo' for Kilo CLI auth.json</description>
+    </key>
+    <key name="copilot-credential-source" type="s">
+      <default>'kilo'</default>
+      <summary>Copilot credential source</summary>
+      <description>How to obtain Copilot credentials: 'kilo' for Kilo CLI auth.json (only option currently)</description>
+    </key>
+    <key name="primary-quota-id" type="s">
+      <default>''</default>
+      <summary>Primary quota display ID</summary>
+      <description>String-based quota ID for the panel indicator, e.g. 'zai-weekly', 'copilot-premium'. Empty string means auto-select first available.</description>
+    </key>
+    <key name="notifications-enabled" type="b">
+      <default>true</default>
+      <summary>Enable low token notifications</summary>
+      <description>Show desktop notifications when token quotas fall below configured thresholds</description>
+    </key>
+  </schema>
+</schemalist>

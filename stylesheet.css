@@ -1,0 +1,123 @@
+.tg-panel-box {
+    spacing: 4px;
+    padding: 0 4px;
+}
+
+.tg-icon {
+    icon-size: 16px;
+}
+
+.tg-icon-error {
+    color: #f44336;
+}
+
+.tg-progress-container {
+    width: 80px;
+    height: 14px;
+    margin: 0 4px;
+}
+
+.tg-progress-bar {
+    width: 80px;
+    height: 10px;
+    border-radius: 5px;
+}
+
+.tg-providers-row {
+    spacing: 0;
+    padding: 4px 8px;
+}
+
+.tg-provider-column {
+    spacing: 4px;
+    min-width: 160px;
+    padding: 0 8px;
+}
+
+.tg-column-separator {
+    width: 1px;
+    background-color: rgba(255, 255, 255, 0.1);
+    margin: 4px 0;
+}
+
+.tg-quota-separator {
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.06);
+    margin: 4px 0;
+}
+
+.tg-quota-section {
+    padding: 6px 4px;
+    spacing: 4px;
+    border-radius: 8px;
+    transition-duration: 100ms;
+}
+
+.tg-quota-section:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.tg-quota-section:active {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.tg-quota-header {
+    spacing: 8px;
+    margin-bottom: 4px;
+}
+
+.tg-quota-title {
+    font-weight: bold;
+    font-size: 11pt;
+}
+
+.tg-menu-progress-bar {
+    height: 8px;
+    border-radius: 4px;
+    margin: 4px 0;
+}
+
+.tg-quota-percent {
+    font-size: 10pt;
+    color: #888;
+}
+
+.tg-quota-reset {
+    font-size: 9pt;
+    color: #666;
+}
+
+.tg-quota-usage {
+    font-size: 9pt;
+    color: #888;
+    margin-top: 2px;
+}
+
+.tg-provider-header {
+    font-size: 9pt;
+    color: #999;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.tg-provider-separator {
+    margin: 4px 0;
+    border-bottom-width: 2px;
+}
+
+/* Refresh spinner icon (rotation is handled by Clutter.PropertyTransition) */
+.tg-refresh-spinner {
+    icon-size: 16px;
+}
+
+.success {
+    color: #4caf50;
+}
+
+.error {
+    color: #f44336;
+}
+
+.info {
+    color: #2196f3;
+}

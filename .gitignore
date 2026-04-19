@@ -1,0 +1,11 @@
+# Editor / tooling
+.idea/
+.ruff_cache/
+
+# Kilo CLI workspace (plans, node_modules, etc.)
+.kilo/
+
+# Build artifacts
+dist/
+*.shell-extension.zip
+schemas/gschemas.compiled

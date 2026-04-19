@@ -1,0 +1,34 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install GNOME Shell tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gnome-shell libglib2.0-bin
+
+      - name: Pack extension
+        run: |
+          mkdir -p dist
+          gnome-extensions pack \
+            --force \
+            --out-dir dist \
+            --extra-source=lib \
+            --extra-source=stylesheet.css \
+            .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: token_gauge-shell-extension
+          path: dist/*.shell-extension.zip

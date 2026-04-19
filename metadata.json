@@ -1,0 +1,13 @@
+{
+  "name": "AI Token Gauge for Z.ai/GLM and Kilo CLI",
+  "description": "Shows remaining quota for your AI coding plan in the top panel. Supports Z.ai and GitHub Copilot*, with optional low-quota notifications. *Only supported through the Kilo CLI.",
+  "uuid": "token_gauge@oswald.dev",
+  "settings-schema": "org.gnome.shell.extensions.token_gauge",
+  "license": "AGPL-3.0-or-later",
+  "url": "https://github.com/ben-oswald/token_gauge",
+  "version": 1,
+  "version-name": "0.1.0",
+  "shell-version": [
+    "49"
+  ]
+}
