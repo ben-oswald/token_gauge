@@ -8,6 +8,7 @@
   "version": 1,
   "version-name": "0.1.0",
   "shell-version": [
-    "49"
+    "49",
+    "50"
   ]
 }
