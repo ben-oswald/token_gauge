@@ -57,6 +57,10 @@
     background-color: rgba(255, 255, 255, 0.08);
 }
 
+.tg-quota-unavailable {
+    opacity: 0.35;
+}
+
 .tg-quota-section:active {
     background-color: rgba(255, 255, 255, 0.15);
 }

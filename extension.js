@@ -54,7 +54,7 @@ const SECRET_SCHEMA = Secret.Schema.new(
 const PROVIDER_REGISTRY = {
     'zai': {
         name: 'Z.ai',
-        credentialSources: ['kilo', 'api_key'],
+        credentialSources: ['kilo', 'opencode', 'api_key'],
         endpoint: 'https://api.z.ai/api/monitor/usage/quota/limit',
         getAuthHeaders(auth, apiKey) {
             let key = apiKey;
@@ -75,16 +75,16 @@ const PROVIDER_REGISTRY = {
         quotas: [
             {
                 id: 'zai-5h', name: '5 Hours Quota', icon: 'clock-alt-symbolic',
-                read: (data) => readZaiLimit(data, 0),
+                read: (data) => readZaiLimit(data, 'zai-5h'),
             },
             {
                 id: 'zai-weekly', name: 'Weekly Quota', icon: 'calendar-week-symbolic',
-                read: (data) => readZaiLimit(data, 1),
+                read: (data) => readZaiLimit(data, 'zai-weekly'),
             },
             {
                 id: 'zai-monthly', name: 'Monthly Web Search', icon: 'edit-find-symbolic',
                 showRemainingCount: true,
-                read: (data) => readZaiLimit(data, 2, {includeRemainingCount: true}),
+                read: (data) => readZaiLimit(data, 'zai-monthly', {includeRemainingCount: true}),
             },
         ],
     },
@@ -122,17 +122,42 @@ const PROVIDER_REGISTRY = {
     },
 };
 
-function readZaiLimit(data, index, {includeRemainingCount = false} = {}) {
-    if (!data || !data.limits || !data.limits[index]) return null;
-    const limit = data.limits[index];
+function readZaiLimit(data, quotaId, {includeRemainingCount = false} = {}) {
+    if (!data || !data.limits) return null;
+
+    const limits = data.limits;
+    let limit = null;
+
+    // Try type-based matching (works when the API returns a `type` field).
+    const typeMap = {'zai-5h': 'TOKENS_LIMIT', 'zai-monthly': 'TIME_LIMIT'};
+    if (typeMap[quotaId]) {
+        limit = limits.find(l => l.type === typeMap[quotaId]) || null;
+    } else if (quotaId === 'zai-weekly') {
+        const known = Object.values(typeMap);
+        limit = limits.find(l => l.type && !known.includes(l.type)) || null;
+    }
+
+    // Fallback: plan-based positional mapping.
+    // Non-legacy (≥ 3 limits): [5h, weekly, monthly]
+    // Legacy       (2 limits): [monthly, 5h]
+    if (!limit) {
+        if (limits.length >= 3) {
+            const idx = {'zai-5h': 0, 'zai-weekly': 1, 'zai-monthly': 2}[quotaId];
+            if (idx !== undefined) limit = limits[idx];
+        } else if (limits.length === 2) {
+            const idx = {'zai-5h': 1, 'zai-monthly': 0}[quotaId];
+            if (idx !== undefined) limit = limits[idx];
+        }
+    }
+
+    if (!limit) return null;
+
     const out = {
         remainingPct: 100 - (limit.percentage || 0),
         resetDate: limit.nextResetTime ? new Date(limit.nextResetTime) : null,
     };
     if (includeRemainingCount) {
         const remaining = limit.remaining || 0;
-        // The usage-text format string mirrors the pre-refactor label so
-        // existing translations keep working.
         out.usageText = {kind: 'remaining', value: remaining};
     }
     return out;
@@ -167,6 +192,7 @@ class TokenGaugeIndicator extends PanelMenu.Button {
         this._providerData = {};
         this._providerErrors = {};
         this._kiloAuth = null;
+        this._opencodeAuth = null;
         this._errorState = false;
         this._isRefreshing = false;
 
@@ -223,6 +249,7 @@ class TokenGaugeIndicator extends PanelMenu.Button {
             ['changed::zai-credential-source',    () => this._onProvidersChanged()],
             ['changed::copilot-credential-source', () => this._onProvidersChanged()],
             ['changed::kilo-credentials-path',    () => this._onProvidersChanged()],
+            ['changed::opencode-credentials-path', () => this._onProvidersChanged()],
         ];
         for (const [signal, cb] of settingHooks)
             this._settingsSignals.push(this._settings.connect(signal, cb));
@@ -258,10 +285,17 @@ class TokenGaugeIndicator extends PanelMenu.Button {
         );
     }
 
+    _anyProviderUsesOpenCode() {
+        return this._getEnabledProviders().some(
+            pid => this._getCredentialSource(pid) === 'opencode'
+        );
+    }
+
     _onProvidersChanged() {
         this._providerData = {};
         this._providerErrors = {};
         this._kiloAuth = null;
+        this._opencodeAuth = null;
         this._previousRemaining = {};
         this._rebuildMenu();
         this._loadAllCredentials();
@@ -645,6 +679,9 @@ class TokenGaugeIndicator extends PanelMenu.Button {
         if (this._anyProviderUsesKilo()) {
             await this._loadKiloAuth();
         }
+        if (this._anyProviderUsesOpenCode()) {
+            await this._loadOpenCodeAuth();
+        }
         await this._fetchAllProviders(enabledProviders);
         this._startRefreshTimer();
     }
@@ -673,6 +710,33 @@ class TokenGaugeIndicator extends PanelMenu.Button {
                 } catch (e) {
                     console.error('Failed to load Kilo auth.json:', e);
                     this._kiloAuth = null;
+                }
+                resolve();
+            });
+        });
+    }
+
+    _resolveOpenCodeAuthPath() {
+        const customPath = this._settings.get_string('opencode-credentials-path');
+        if (customPath && customPath.trim() !== '')
+            return customPath.trim();
+        return GLib.build_filenamev([
+            GLib.get_home_dir(), '.local', 'share', 'opencode', 'auth.json',
+        ]);
+    }
+
+    _loadOpenCodeAuth() {
+        return new Promise((resolve) => {
+            const authPath = this._resolveOpenCodeAuthPath();
+            const file = Gio.File.new_for_path(authPath);
+            file.load_contents_async(null, (fileObj, result) => {
+                try {
+                    const [, contents] = fileObj.load_contents_finish(result);
+                    const decoder = new TextDecoder('utf-8');
+                    this._opencodeAuth = JSON.parse(decoder.decode(contents));
+                } catch (e) {
+                    console.error('Failed to load OpenCode auth.json:', e);
+                    this._opencodeAuth = null;
                 }
                 resolve();
             });
@@ -723,16 +787,27 @@ class TokenGaugeIndicator extends PanelMenu.Button {
             }
         }
         // `credSource === 'kilo'` -> auth comes from this._kiloAuth via getAuthHeaders
+        // `credSource === 'opencode'` -> auth comes from this._opencodeAuth via getAuthHeaders
 
-        const headers = provider.getAuthHeaders(this._kiloAuth, apiKey);
+        let auth = null;
+        if (credSource === 'kilo')
+            auth = this._kiloAuth;
+        else if (credSource === 'opencode')
+            auth = this._opencodeAuth;
+
+        const headers = provider.getAuthHeaders(auth, apiKey);
         if (!headers) {
-            // No credentials found. Use a provider-appropriate message.
             if (credSource === 'kilo') {
                 const msg = pid === 'zai'
                     ? this._('No Z.ai API key in auth.json')
                     : pid === 'copilot'
                         ? this._('No Copilot credentials in auth.json')
                         : this._('No credentials');
+                this._setProviderError(pid, msg);
+            } else if (credSource === 'opencode') {
+                const msg = pid === 'zai'
+                    ? this._('No Z.ai API key in OpenCode auth.json')
+                    : this._('No credentials');
                 this._setProviderError(pid, msg);
             } else {
                 this._setProviderError(pid, this._('No credentials'));
@@ -783,6 +858,7 @@ class TokenGaugeIndicator extends PanelMenu.Button {
         for (const quota of provider.quotas) {
             const section = this._quotaSections[quota.id];
             if (!section) continue;
+            section.remove_style_class_name('tg-quota-unavailable');
             section._percentLabel.set_text(pctText);
             if (extraClass)
                 section._percentLabel.add_style_class_name(extraClass);
@@ -814,8 +890,13 @@ class TokenGaugeIndicator extends PanelMenu.Button {
             if (!section) continue;
 
             const vals = quota.read(data);
-            if (!vals) continue;
+            if (!vals) {
+                this._setQuotaUnavailable(section);
+                continue;
+            }
 
+            section.remove_style_class_name('tg-quota-unavailable');
+            section._progressBar.visible = true;
             this._applyQuotaSection(section, vals);
         }
     }
@@ -847,6 +928,15 @@ class TokenGaugeIndicator extends PanelMenu.Button {
                 );
             }
         }
+    }
+
+    _setQuotaUnavailable(section) {
+        section.add_style_class_name('tg-quota-unavailable');
+        section._progressBar.visible = false;
+        section._percentLabel.set_text(this._('N/A'));
+        section._resetLabel.set_text(this._('Not available on your plan'));
+        if (section._usageLabel)
+            section._usageLabel.set_text('');
     }
 
     _checkNotifications() {

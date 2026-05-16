@@ -42,8 +42,8 @@ const PROVIDER_REGISTRY = {
     'zai': {
         name: 'Z.ai',
         description: 'AI coding assistant quotas',
-        credentialSources: ['kilo', 'api_key'],
-        credentialSourceLabels: {'kilo': 'Kilo CLI', 'api_key': 'API Key'},
+        credentialSources: ['kilo', 'opencode', 'api_key'],
+        credentialSourceLabels: {'kilo': 'Kilo CLI', 'opencode': 'OpenCode', 'api_key': 'API Key'},
         quotas: [
             {id: 'zai-5h', name: '5 Hours Quota'},
             {id: 'zai-weekly', name: 'Weekly Quota'},
@@ -86,21 +86,31 @@ class TokenGaugePrefsWidget extends Adw.PreferencesPage {
             this._buildProviderExpander(this._providersGroup, pid, provider);
         }
 
-        this._kiloGroup = new Adw.PreferencesGroup({
-            title: _('Kilo CLI'),
-            description: _('Shared settings for Kilo CLI credential source'),
+        this._credSourcesGroup = new Adw.PreferencesGroup({
+            title: _('Credential Sources'),
+            description: _('Paths to auth.json files for credential auto-detection'),
         });
-        this.add(this._kiloGroup);
+        this.add(this._credSourcesGroup);
 
         this._kiloPathRow = new Adw.EntryRow({
-            title: _('Credentials File Path (default: ~/.local/share/kilo/auth.json)'),
+            title: _('Kilo CLI (default: ~/.local/share/kilo/auth.json)'),
             show_apply_button: true,
             text: this._settings.get_string('kilo-credentials-path'),
         });
         this._kiloPathRow.connect('apply', () => {
             this._settings.set_string('kilo-credentials-path', this._kiloPathRow.text);
         });
-        this._kiloGroup.add(this._kiloPathRow);
+        this._credSourcesGroup.add(this._kiloPathRow);
+
+        this._opencodePathRow = new Adw.EntryRow({
+            title: _('OpenCode (default: ~/.local/share/opencode/auth.json)'),
+            show_apply_button: true,
+            text: this._settings.get_string('opencode-credentials-path'),
+        });
+        this._opencodePathRow.connect('apply', () => {
+            this._settings.set_string('opencode-credentials-path', this._opencodePathRow.text);
+        });
+        this._credSourcesGroup.add(this._opencodePathRow);
 
         const displayGroup = new Adw.PreferencesGroup({
             title: _('Display'),
@@ -167,19 +177,19 @@ class TokenGaugePrefsWidget extends Adw.PreferencesPage {
             margin_bottom: 8,
         });
 
-        this._updateKiloGroupVisibility();
+        this._updateCredSourcesGroupVisibility();
         this._connectSetting('changed::enabled-providers', () => {
-            this._updateKiloGroupVisibility();
+            this._updateCredSourcesGroupVisibility();
             this._rebuildPrimaryQuotaModel();
         });
         this._connectSetting('changed::provider-order', () => {
             this._rebuildPrimaryQuotaModel();
         });
         this._connectSetting('changed::zai-credential-source', () => {
-            this._updateKiloGroupVisibility();
+            this._updateCredSourcesGroupVisibility();
         });
         this._connectSetting('changed::copilot-credential-source', () => {
-            this._updateKiloGroupVisibility();
+            this._updateCredSourcesGroupVisibility();
         });
 
         this._updateMoveActionSensitivity();
@@ -448,6 +458,16 @@ class TokenGaugePrefsWidget extends Adw.PreferencesPage {
         }));
         expander.add_row(kiloInfoRow);
 
+        const opencodeInfoRow = new Adw.ActionRow({
+            title: _('Info'),
+            subtitle: _('Reading credentials from OpenCode auth.json'),
+        });
+        opencodeInfoRow.add_prefix(new Gtk.Image({
+            icon_name: 'dialog-information-symbolic',
+            valign: Gtk.Align.CENTER,
+        }));
+        expander.add_row(opencodeInfoRow);
+
         let apiKeyRow = null;
         let saveRow = null;
         let testRow = null;
@@ -534,6 +554,7 @@ class TokenGaugePrefsWidget extends Adw.PreferencesPage {
         }
 
         expander._kiloInfoRow = kiloInfoRow;
+        expander._opencodeInfoRow = opencodeInfoRow;
 
         this._updateProviderCredentialUI(pid, currentSource);
     }
@@ -546,14 +567,20 @@ class TokenGaugePrefsWidget extends Adw.PreferencesPage {
         if (!expander) return;
 
         const isKilo = source === 'kilo';
+        const isOpenCode = source === 'opencode';
+        const isApiKey = source === 'api_key';
 
         if (expander._kiloInfoRow) {
             expander._kiloInfoRow.visible = isKilo;
         }
 
+        if (expander._opencodeInfoRow) {
+            expander._opencodeInfoRow.visible = isOpenCode;
+        }
+
         if (expander._apiKeyRows) {
             expander._apiKeyRows.forEach(row => {
-                row.visible = !isKilo;
+                row.visible = isApiKey;
             });
         }
     }
@@ -619,16 +646,22 @@ class TokenGaugePrefsWidget extends Adw.PreferencesPage {
         }
     }
 
-    _updateKiloGroupVisibility() {
+    _updateCredSourcesGroupVisibility() {
         const enabledProviders = this._settings.get_strv('enabled-providers');
-        const anyUsesKilo = enabledProviders.some(pid => {
+        let anyUsesKilo = false;
+        let anyUsesOpenCode = false;
+        for (const pid of enabledProviders) {
             try {
-                return this._settings.get_string(`${pid}-credential-source`) === 'kilo';
+                const src = this._settings.get_string(`${pid}-credential-source`);
+                if (src === 'kilo') anyUsesKilo = true;
+                if (src === 'opencode') anyUsesOpenCode = true;
             } catch {
-                return false;
+                // ignore
             }
-        });
-        this._kiloGroup.visible = anyUsesKilo;
+        }
+        this._credSourcesGroup.visible = anyUsesKilo || anyUsesOpenCode;
+        if (this._kiloPathRow) this._kiloPathRow.visible = anyUsesKilo;
+        if (this._opencodePathRow) this._opencodePathRow.visible = anyUsesOpenCode;
     }
 
     _getCurrentQuotaOptions() {

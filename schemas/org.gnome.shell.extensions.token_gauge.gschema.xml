@@ -16,6 +16,11 @@
       <summary>Kilo credentials path</summary>
       <description>Custom path to Kilo's auth.json. Empty string means auto-detect at ~/.local/share/kilo/auth.json</description>
     </key>
+    <key name="opencode-credentials-path" type="s">
+      <default>''</default>
+      <summary>OpenCode credentials path</summary>
+      <description>Custom path to OpenCode's auth.json. Empty string means auto-detect at ~/.local/share/opencode/auth.json</description>
+    </key>
     <key name="enabled-providers" type="as">
       <default>[]</default>
       <summary>Enabled providers</summary>
@@ -29,7 +34,7 @@
     <key name="zai-credential-source" type="s">
       <default>'kilo'</default>
       <summary>Z.ai credential source</summary>
-      <description>How to obtain Z.ai credentials: 'api_key' for manual GNOME Keyring entry, 'kilo' for Kilo CLI auth.json</description>
+      <description>How to obtain Z.ai credentials: 'api_key' for manual GNOME Keyring entry, 'kilo' for Kilo CLI auth.json, 'opencode' for OpenCode auth.json</description>
     </key>
     <key name="copilot-credential-source" type="s">
       <default>'kilo'</default>
